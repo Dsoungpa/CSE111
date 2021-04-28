@@ -81,14 +81,18 @@ void fn_make (inode_state& state, const wordvec& words) {
 std::vector<string> split_string (const string& words){                                                              
    std::vector<string> new_;
    string temp = "";
-   for(int i = 0; i < words.size(); i++){                                                                                  //cout << words[i] << endl;                                                                                          if(words[i] != '/'){                                                                                                    temp += words[i];
+   for(int i = 0; i < words.size(); i++){  
+      //cout << words[i] << endl; 
+      if(words[i] != '/'){                                                                                                    
+         temp += words[i];
       }
       else{
          new_.push_back(temp);
          temp = "";
       }
    }
-   new_.push_back(temp);                                                                                                return new_;
+   new_.push_back(temp);                                                                                                
+   return new_;
 }
 
 void fn_mkdir (inode_state& state, const wordvec& words) {
