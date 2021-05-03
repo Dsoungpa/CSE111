@@ -163,7 +163,7 @@ inode_ptr directory::mkdir (const string& dirname) {
    newDir->getContent()->getDirent()["."] = newDir;
    newDir->setName(dirname);
    this->getDirent()[dirname] = newDir;
-   cout << "Got to mkdir" << endl;
+   //cout << "Got to mkdir" << endl;
    return newDir;
 }
 

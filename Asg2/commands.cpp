@@ -46,19 +46,40 @@ void fn_cat (inode_state& state, const wordvec& words) {
 void fn_cd (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
+   // Just cd check
+   if(words.size() == 1){
+      state.setCwd(state.getRoot());
+      return;
+   }
+
    wordvec splitWords = split(words[1], "/");
-   //cout << splitWords[0] << endl;
-   inode_ptr null = nullptr;
-   
+
    for(int i = 0; i < splitWords.size(); i++){
-      if(state.getCwd()->getContent()->getPtr(splitWords[i]) == nullptr){
+      if(state.getCwd()->getContent()->
+      getPtr(splitWords[i]) == nullptr){
          cout << "Error: No such directory!" << endl;
       }
       else{
-         inode_ptr curr = state.getCwd()->getContent()->getPtr(splitWords[i]);
+         inode_ptr curr = state.getCwd()->
+         getContent()->getPtr(splitWords[i]);
          state.setCwd(curr);
       }
    }
+}
+
+bool checkIn(inode_state& state, const wordvec& words){
+   if(words.size() == 1){
+      return true;
+   }
+   wordvec splitWords = split(words[1], "/");
+
+   for(int i = 0; i < splitWords.size(); i++){
+      if(state.getCwd()->getContent()->
+      getPtr(splitWords[i]) == nullptr){
+         return false;
+      }
+   }
+   return true;
 }
 
 void fn_echo (inode_state& state, const wordvec& words) {
@@ -109,11 +130,17 @@ void fn_mkdir (inode_state& state, const wordvec& words) {
       temp.pop_back();
       }
       temp.pop_back(); // remove "/"
-      cout << "Temp: " << temp << endl;
+      //cout << "Temp: " << temp << endl;
       wordvec path;
       path.push_back(words[0]);
       path.push_back(temp);
-      fn_cd(state, path);
+      if(checkIn(state, path) == true){
+         fn_cd(state, path);
+      }
+      else{
+         cout << "Error: Directory does not exist" << endl;
+         return;
+      }
    }
 
    wordvec spl = split(words[1], "/");
@@ -138,13 +165,22 @@ void fn_prompt (inode_state& state, const wordvec& words) {
 void fn_pwd (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-
+   if(state.getCwd() == state.getRoot()){
+      cout << "/" << endl;
+      return;
+   }
+   inode_ptr save = state.getCwd();
+   wordvec goParent;
+   goParent.push_back(words[0]); 
+   goParent.push_back("..");
    string name = "";
    while(state.getCwd() != state.getRoot()){
       name = "/" + state.getCwd()->getName() + name;
+      fn_cd(state, goParent);
    }
+   state.setCwd(save);
    cout << name << endl;
-
+   return;
 }
 
 void fn_rm (inode_state& state, const wordvec& words) {
