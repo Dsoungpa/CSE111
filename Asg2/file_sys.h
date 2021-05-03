@@ -1,5 +1,3 @@
-// $Id: file_sys.h,v 1.8 2020-10-22 14:37:26-07 - - $
-
 #ifndef __INODE_H__
 #define __INODE_H__
 
@@ -36,21 +34,17 @@ class inode_state {
    private:
       inode_ptr root {nullptr};
       inode_ptr cwd {nullptr};
-      inode_ptr temp {nullptr};
       string prompt_ {"% "};
    public:
       inode_state (const inode_state&) = delete; // copy ctor
       inode_state& operator= (const inode_state&) = delete; // op=
       inode_state();
+      inode_ptr getCwd();
+      inode_ptr getRoot();
+      void setCwd(inode_ptr curr);
+      void prompt(const wordvec& words);
       const string& prompt() const;
-      void prompt (const wordvec&);
-      void cd_from_commands (const wordvec& words);
-      void cdp (const string& word);
-      void ls ();
-      inode_ptr get_cwd();
-      void set_cwd(inode_ptr);
-      inode_ptr get_temp();
-      void set_temp();
+      void prompt (const string&);
 };
 
 // class inode -
@@ -72,11 +66,14 @@ class inode {
       static size_t next_inode_nr;
       size_t inode_nr;
       base_file_ptr contents;
+      string name;
    public:
       inode() = delete;
       inode (file_type);
       size_t get_inode_nr() const;
-      static inode_ptr parent();
+      base_file_ptr getContent();
+      void setName(const string& dirname);
+      string getName();
 };
 
 
@@ -95,7 +92,6 @@ class base_file {
       base_file() = default;
       virtual const string& error_file_type() const = 0;
    public:
-      int content_size = 0;
       virtual ~base_file() = default;
       base_file (const base_file&) = delete;
       base_file& operator= (const base_file&) = delete;
@@ -105,7 +101,9 @@ class base_file {
       virtual void remove (const string& filename);
       virtual inode_ptr mkdir (const string& dirname);
       virtual inode_ptr mkfile (const string& filename);
-      virtual map<string, inode_ptr> get_map();
+      virtual void addMap(const string& dirname, inode_ptr ptr);
+      virtual inode_ptr getPtr(const string& dirname);
+      virtual map<string, inode_ptr>& getDirent();
 };
 
 // class plain_file -
@@ -120,7 +118,6 @@ class base_file {
 class plain_file: public base_file {
    private:
       wordvec data;
-      //int size;
       virtual const string& error_file_type() const override {
          static const string result = "plain file";
          return result;
@@ -153,10 +150,7 @@ class directory: public base_file {
    private:
       // Must be a map, not unordered_map, so printing is lexicographic
       map<string,inode_ptr> dirents;
-
-      weak_ptr<inode> parent;
-      weak_ptr<inode> self;
-
+      //dirents for weak ptrs, ., ..
       virtual const string& error_file_type() const override {
          static const string result = "directory";
          return result;
@@ -166,9 +160,9 @@ class directory: public base_file {
       virtual void remove (const string& filename) override;
       virtual inode_ptr mkdir (const string& dirname) override;
       virtual inode_ptr mkfile (const string& filename) override;
-      void set(inode_ptr parent, inode_ptr self);
-      virtual map<string, inode_ptr> get_map() override;
+      virtual void addMap(const string& dirname, inode_ptr ptr) override;
+      virtual inode_ptr getPtr(const string& dirname) override;
+      virtual map<string, inode_ptr>& getDirent() override;
 };
 
 #endif
-

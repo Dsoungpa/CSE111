@@ -1,5 +1,3 @@
-// $Id: commands.cpp,v 1.20 2021-01-11 15:52:17-08 - - $
-
 #include "commands.h"
 #include "debug.h"
 
@@ -43,28 +41,24 @@ int exit_status_message() {
 void fn_cat (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-
-   // Print state.contents to cout
-
-
 }
 
 void fn_cd (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-
-   inode_ptr temp = state.get_temp();
-   map<string, inode_ptr> map = temp->get_map();
-   for(int i = 0; i < words.size(); i++){{
-      if(map.find(words[i]) == map.end()){
-         cout << "Error, no such directory found: " << words[i] << endl;
-         state.set_temp();
-         return;
+   wordvec splitWords = split(words[1], "/");
+   //cout << splitWords[0] << endl;
+   inode_ptr null = nullptr;
+   
+   for(int i = 0; i < splitWords.size(); i++){
+      if(state.getCwd()->getContent()->getPtr(splitWords[i]) == nullptr){
+         cout << "Error: No such directory!" << endl;
       }
-      temp = map.find(words[i]);
+      else{
+         inode_ptr curr = state.getCwd()->getContent()->getPtr(splitWords[i]);
+         state.setCwd(curr);
+      }
    }
-   state.set_cwd(temp);
-   state.set_temp();
 }
 
 void fn_echo (inode_state& state, const wordvec& words) {
@@ -83,155 +77,82 @@ void fn_exit (inode_state& state, const wordvec& words) {
 void fn_ls (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-
-   inode_ptr temp = state.get_temp();
-   map<string, inode_ptr> map = temp.get_map;
- 
-   string path = words[1];
-
-   words = split_string(words[1]);
- 
-   for(int i = 0; i < words.size(); i++){{
-      map = temp.get_map();
-      if(map.find(words[i]) == map.end()){
-         cout << "Error, no such directory found: " << words[i] << endl;
-         set_temp();
-         return;
-      }
-      
-      temp = map.find(words[i]);
-   }
-   // Print cwd
-   cout << path << ":" << endl;
-   std::map<string, inode_ptr>::iterator it;
-   // Iterate through cwd file list
-   for(it = map.begin(); it != map.end(); it++){
+   inode_ptr cD = state.getCwd();
+   int size = cD->getContent()->getDirent().size();
+   map<string, inode_ptr>::iterator it;
    
-      // Print unique inode number, file/directory size, and name
-      cout << it.first() << "/" << endl;
-
+   for(it = cD->getContent()->getDirent().begin(); 
+      it != cD->getContent()->getDirent().end(); it++){
+      cout << it->first << endl;
    }
-
 }
 
 void fn_lsr (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-
-   // Call ls on cwd
-   // For directory in cwd:
-   //    call lsr
-
 }
 
 void fn_make (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-
-   // If filename in name list, throw error
-   
-
-   // add filename to ordered names list
-   // create inode, connect it to cwd
-   // Add filename: contents to hashmap
-
 }
-
-std::vector<string> split_string (const string& words){
-
-   std::vector<string> new_;
-   string temp = "";
-   for(int i = 0; i < words.size(); i++){
-      //cout << words[i] << endl;
-      if(words[i] != '/'){
-         temp += words[i];
-      }
-      else{
-         new_.push_back(temp);
-         temp = "";
-      }
-   }
-   new_.push_back(temp);
-   return new_;
-}
-
-
-
 
 void fn_mkdir (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
- 
-   // If directory in name list, throw error
-   std::vector<string> new_string = split_string(words[1]);
+   inode_ptr saveCurr = state.getCwd();
+   string temp = words[1];
 
-   cout << new_string << endl;
+   wordvec s = split(words[1], "/");
+   if(s.size() > 1){
+      while(temp.back() != '/'){
+      temp.pop_back();
+      }
+      temp.pop_back(); // remove "/"
+      cout << "Temp: " << temp << endl;
+      wordvec path;
+      path.push_back(words[0]);
+      path.push_back(temp);
+      fn_cd(state, path);
+   }
 
-   directory_name = new_string.back();
-   new_string.pop_back();
-
-   fn_cd(state, new_string);
-
-   inode_ptr temp = state.get_temp();
-   map<string, inode_ptr> map = temp.get_map();
-
-   if(map.find(directory_name) != map.end()){
-      cout << "Error: Directory already exists! " << directory_name << endl;
-      return;
+   wordvec spl = split(words[1], "/");
+   string word = spl[spl.size() - 1];
+   if(state.getCwd()->getContent()->getPtr(word) == nullptr){
+      state.getCwd()->getContent()->mkdir(word);
+      inode_ptr newDir = state.getCwd()->getContent()->getPtr(word);
+      newDir->getContent()->getDirent()[".."] = state.getCwd();
    }
    else{
-      temp.mkdir(directory_name);
-   }      
+      cout << "Error: Directory Already Exists" << endl; 
+   }
+   state.setCwd(saveCurr);
 }
 
 void fn_prompt (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-
-   //
    state.prompt(words);
-
 }
 
 void fn_pwd (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
 
-   // print name of cwd
-   
+   string name = "";
+   while(state.getCwd() != state.getRoot()){
+      name = "/" + state.getCwd()->getName() + name;
+   }
+   cout << name << endl;
+
 }
 
 void fn_rm (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-
-   // Use temp cursor to cd to pathname's parent directory
-   //
-   // If pathname doesn't exist, throw error
-   //
-   // if pathname is file, remove file name from list, delete from hgashmap, free memory
-   //
-   // if pathname is directory, check if it's empty
-   // if empty directory, remove directory name from list, delete from hashmap, free memory
-
 }
 
 void fn_rmr (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-
-   // Use temp cursor to cd to pathname's parent directory
-   //
-   // if pathname doesn't exist, throw error
-   //
-   // If pathname is file, remove file name from list, delete from hashmap, free memory
-   //
-   // if pathname is directory:
-   
-      // Iterate through directory contents
-      // for file/directory in directory:
-         // rmr file/directory
-
-
 }
-

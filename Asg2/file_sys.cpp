@@ -1,5 +1,3 @@
-// $Id: file_sys.cpp,v 1.10 2021-04-10 14:23:40-07 - - $
-
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
@@ -23,79 +21,33 @@ ostream& operator<< (ostream& out, file_type type) {
 inode_state::inode_state() {
    DEBUGF ('i', "root = " << root << ", cwd = " << cwd
           << ", prompt = \"" << prompt() << "\"");
-
-   // Constructor for root directory
-
    root = make_shared<inode>(file_type::DIRECTORY_TYPE);
    cwd = root;
-   root->dirents.insert(std::pair<string, inode_ptr>(".", root));
-   root->dirents.insert(std::pair<string, inode_ptr>("..", root));
-
+   root->getContent()->addMap(".", root);
+   root->getContent()->addMap("..", root);
+   root->setName("/");
 }
 
-//////////////////////////////////////
-///////// GETTER FUNCTIONS ///////////
-//////////////////////////////////////
-
-inode_ptr inode_state::get_cwd() { return cwd;}
-
-void inode_state::set_cwd(inode_ptr temp){
-   cwd = temp
-   return;
-}
-
-inode_ptr inode_state::get_root() {return root;}
-
-inode_ptr inode_state::get_temp() {return temp;}
-
-void inode_state::set_temp(){ temp = cwd; return;}
-
-map<string, inode_ptr> directory::get_map() {return dirents;}
-
-
-/////////////////////////////////////
-
-
-const string& inode_state::prompt() const { return prompt_; }
-
-static inode_ptr inode::parent(){ return parent; }
-
-void inode_state::prompt (const wordvec& words){
-
+void inode_state::prompt(const wordvec& words){
    this->prompt_ = "";
    for(int i = 1; i < words.size(); i++){
-   
       this->prompt_ += words[i] + " ";
-   
    }
 }
 
-
-void inode_state::cdp (const string& word){
-
-//   this->cwd = this->cwd->parent;
+inode_ptr inode_state::getCwd(){
+   return this->cwd;
 }
 
-
-void inode_state::ls (){
-/*
-   cout << this->cwd->name << ":"<< endl;
-   
-
-   map<string, inode_ptr>::iterator it;
-   for(it = this->cwd->dirents.begin(); it != this->cwd->dirents.end(); it++){
-
-      int inode_num = it->second.inode_nr;
-      int size = it->second.size();
-      string name = it->first;
-
-      
-
-   }*/
-
+inode_ptr inode_state::getRoot(){
+   return this->root;
 }
-      
 
+void inode_state::setCwd(inode_ptr curr){
+   this->cwd = curr;
+}
+
+const string& inode_state::prompt() const { return prompt_; }
 
 ostream& operator<< (ostream& out, const inode_state& state) {
    out << "inode_state: root = " << state.root
@@ -116,10 +68,21 @@ inode::inode(file_type type): inode_nr (next_inode_nr++) {
    DEBUGF ('i', "inode " << inode_nr << ", type = " << type);
 }
 
-
 size_t inode::get_inode_nr() const {
    DEBUGF ('i', "inode = " << inode_nr);
    return inode_nr;
+}
+
+void inode::setName(const string& dirname){
+   this->name = dirname;
+}
+
+string inode::getName(){
+   return this->name;
+}
+
+base_file_ptr inode::getContent(){
+   return this->contents;
 }
 
 
@@ -137,75 +100,31 @@ void base_file::writefile (const wordvec&) {
 
 void base_file::remove (const string&) {
    throw file_error ("is a " + error_file_type());
-
-   // If file
-      // remove from hashmap/dictionary
-      // decrement directory size by 1
-      // delete file (and contents if needed)
-      // free memory
-   
-   // If Directory
-      // Iterate through directory
-      // if sub-directory:
-         // Call remove on sub-directory and all of it's contents
-      // if file:
-         // Call remove on file
-      // free memory
-
 }
-/*
-std::vector<string> split_string (const string& words){
 
-   std::vector<string> new_;
-   string temp = "";
-   for(int i = 1; i < words.size(); i++){
-      cout << words[i] << endl;
-
-      if(words[i] != "/"){
-         temp += words[i];
-      }
-      else{
-         new_.push_back(temp);
-         temp = "";
-      }
-   }
-   return new_;
-} */  
-
-
-
-inode_ptr base_file::mkdir (const wordvec& words) {
+inode_ptr base_file::mkdir (const string&) {
    throw file_error ("is a " + error_file_type());
-
-   // for every word in vector-1:
- //  for(int i = 0; i < words.size(); i++){
-
-      // If word in cwd map:
-   //   if(this->dirents.find(words[i]) != this->dirents.end()){ 
-         // temp cd to corresponding directory
-         
-      // if word not in cwd map:
-      //    throw error
-   
-   // In parent directory
-   // construct directory 
-   // add it to parent directory list/map
-   // add parent directory to new directory
-   // new.set(parent, new)
-
 }
 
 inode_ptr base_file::mkfile (const string&) {
    throw file_error ("is a " + error_file_type());
 }
+void base_file::addMap(const string& dirname, inode_ptr ptr){
+   throw file_error ("is a " + error_file_type());
+}
+inode_ptr base_file::getPtr(const string& dirname){
+   throw file_error ("is a " + error_file_type());
+}
+ map<string, inode_ptr>& base_file::getDirent(){
+   throw file_error ("is a " + error_file_type());
+ }
+
+
 
 
 size_t plain_file::size() const {
    size_t size {0};
    DEBUGF ('i', "size = " << size);
-
-   // Go through file, count characters
-
    return size;
 }
 
@@ -218,19 +137,21 @@ void plain_file::writefile (const wordvec& words) {
    DEBUGF ('i', words);
 }
 
-void directory::set (inode_ptr p, inode_ptr s){
-
-   this->parent = p;
-   this->self = s;
-   this->dirents.insert({".", s});
-   this->dirents.insert({"..", p});
-}
-
 size_t directory::size() const {
    size_t size {0};
    DEBUGF ('i', "size = " << size);
    return size;
 }
+
+void directory::addMap(const string& dirname, inode_ptr ptr){
+   if(this->dirents.find(dirname) == this->dirents.end()){
+      this->dirents[dirname] = ptr;
+   }
+   else{
+      cout << "Error: Directory already exists" << endl;
+   }
+}
+
 
 void directory::remove (const string& filename) {
    DEBUGF ('i', filename);
@@ -238,17 +159,26 @@ void directory::remove (const string& filename) {
 
 inode_ptr directory::mkdir (const string& dirname) {
    DEBUGF ('i', dirname);
-   return nullptr;
-
-   inode_ptr new_ = make_shared<DIRECTORY_TYPE>();
-
-   new_.set(this, new_); 
-   
-   this->dirents.insert({dirname, new_});
+   inode_ptr newDir = make_shared<inode>(file_type::DIRECTORY_TYPE);
+   newDir->getContent()->getDirent()["."] = newDir;
+   newDir->setName(dirname);
+   this->getDirent()[dirname] = newDir;
+   cout << "Got to mkdir" << endl;
+   return newDir;
 }
+
+ map<string, inode_ptr>& directory::getDirent(){
+    return this->dirents;
+ }
 
 inode_ptr directory::mkfile (const string& filename) {
    DEBUGF ('i', filename);
    return nullptr;
 }
 
+inode_ptr directory::getPtr(const string& dirname){
+   if(this->dirents.find(dirname) == dirents.end()){
+      return nullptr;
+   }
+   return dirents[dirname];
+}
