@@ -90,9 +90,12 @@ file_error::file_error (const string& what):
             runtime_error (what) {
 }
 
+const string& base_file::getError(){
+   return this->error_file_type();
+}
+
 const wordvec& base_file::readfile() const {
-   //throw file_error ("is a " + error_file_type());
-   cout << "here" << endl;
+   throw file_error ("is a " + error_file_type());
 }
 
 void base_file::writefile (const wordvec&) {
@@ -160,6 +163,20 @@ void directory::addMap(const string& dirname, inode_ptr ptr){
 
 void directory::remove (const string& filename) {
    DEBUGF ('i', filename);
+   if(this->getPtr(filename)->getContent()->getError() == "plain file"){
+      //cout << "in plain erase" << endl;
+      this->getDirent().erase(filename);
+   }
+   else{
+      if(this->getPtr(filename)->getContent()->getDirent().size() == 2){
+         //cout << "in dir erase" << endl;
+         this->getDirent().erase(filename);
+      }
+      else{
+         cout << "Error: Non-empty Directory!" << endl;
+      }
+   }
+
 }
 
 inode_ptr directory::mkfile (const string& filename) {

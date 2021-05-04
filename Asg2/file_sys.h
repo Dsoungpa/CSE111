@@ -106,6 +106,8 @@ class base_file {
       virtual inode_ptr getPtr(const string& dirname);
       virtual map<string, inode_ptr>& getDirent();
       virtual size_t get_number();
+      virtual const string& getError();
+      //virtual void catCheck();
 };
 
 // class plain_file -

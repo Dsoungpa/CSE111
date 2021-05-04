@@ -14,6 +14,7 @@ command_hash cmd_hash {
    {"pwd"   , fn_pwd   },
    {"rm"    , fn_rm    },
    {"rmr"   , fn_rmr   },
+   {"#"     , fn_com   },
 };
 
 command_fn find_command_fn (const string& cmd) {
@@ -36,6 +37,10 @@ int exit_status_message() {
    int status = exec::status();
    cout << exec::execname() << ": exit(" << status << ")" << endl;
    return status;
+}
+
+void fn_com (inode_state& state, const wordvec& words){
+   return;
 }
 
 void fn_cat (inode_state& state, const wordvec& words) {
@@ -108,6 +113,17 @@ void fn_ls (inode_state& state, const wordvec& words) {
    int size = cD->getContent()->getDirent().size();
    map<string, inode_ptr>::iterator it;
 
+   // case for if they do "ls /"
+   if(words[1] == "/"){
+      cD = state.getRoot();
+      for(it = cD->getContent()->getDirent().begin(); 
+      it != cD->getContent()->getDirent().end(); it++){
+
+      cout << it->second->get_inode_nr() <<
+              "        " << it->first << endl;
+      }
+      return;
+   }
    // If we want to ls a remote directory,
    // print relative path to directory
    if(words.size() == 2){
@@ -133,7 +149,7 @@ void fn_ls (inode_state& state, const wordvec& words) {
       cout << it->second->get_inode_nr() <<
               "        " << it->first << endl;
    }
-   cD = temp;
+   state.setCwd(temp);
 }
 
 void fn_lsr (inode_state& state, const wordvec& words) {
@@ -169,10 +185,8 @@ void fn_make (inode_state& state, const wordvec& words) {
          contents.push_back(words[i]);
       }
 
-      cout << "File contents: " << contents << endl;
-      cout << "Contents size: " << contents_size << endl;
-
-
+      // cout << "File contents: " << contents << endl;
+      // cout << "Contents size: " << contents_size << endl;
       inode_ptr newFile = state.getCwd()->getContent()
       ->mkfile(filename);
       newFile->getContent()->writefile(contents);
@@ -189,9 +203,6 @@ bool checkIn(inode_state& state, const wordvec& words){
    }
    wordvec splitWords = split(words[1], "/");
    inode_ptr save_curr = state.getCwd();
-
-
-   cout << "In checkin: " << splitWords << endl;
 
    for(int i = 0; i < splitWords.size(); i++){
       wordvec temp;
@@ -223,7 +234,6 @@ void fn_mkdir (inode_state& state, const wordvec& words) {
 
    wordvec s = split(words[1], "/");
    //cout << s << endl;
-
    if(s.size() > 1){
       while(temp.back() != '/'){
          temp.pop_back();
@@ -233,7 +243,6 @@ void fn_mkdir (inode_state& state, const wordvec& words) {
       wordvec path;
       path.push_back(words[0]);
       path.push_back(temp);
-      cout << "Before checkin: " << path[1] << endl;
       if(checkIn(state, path) == true){
          fn_cd(state, path);
       }
@@ -288,6 +297,39 @@ void fn_pwd (inode_state& state, const wordvec& words) {
 void fn_rm (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
+   inode_ptr keep = state.getCwd();
+   string temp = words[1];
+
+
+   wordvec s = split(words[1], "/");
+   if(s.size() > 1){
+      while(temp.back() != '/'){
+         temp.pop_back();
+      }
+      temp.pop_back(); // remove "/"
+      wordvec path;
+      path.push_back(words[0]);
+      path.push_back(temp);
+      //cout << "Before checkin: " << path[1] << endl;
+      if(checkIn(state, path) == true){
+         fn_cd(state, path);
+         wordvec spl = split(words[1], "/");
+         string word = spl[spl.size() - 1];
+         if(state.getCwd()->getContent()->getPtr(word) != nullptr){
+            state.getCwd()->getContent()->remove(word);
+         }
+         state.setCwd(keep);
+         return;
+      }
+      else{
+         cout << "Error, Directory does not exist: " << path[1] << endl;
+         return;
+      }
+   }
+   if(state.getCwd()->getContent()->getPtr(words[1]) != nullptr){
+      state.getCwd()->getContent()->remove(words[1]);
+   }
+
 }
 
 void fn_rmr (inode_state& state, const wordvec& words) {
