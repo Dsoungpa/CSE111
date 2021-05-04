@@ -91,7 +91,8 @@ file_error::file_error (const string& what):
 }
 
 const wordvec& base_file::readfile() const {
-   throw file_error ("is a " + error_file_type());
+   //throw file_error ("is a " + error_file_type());
+   cout << "here" << endl;
 }
 
 void base_file::writefile (const wordvec&) {
@@ -118,6 +119,9 @@ inode_ptr base_file::getPtr(const string& dirname){
  map<string, inode_ptr>& base_file::getDirent(){
    throw file_error ("is a " + error_file_type());
  }
+size_t base_file::get_number(){
+   throw file_error ("is a " + error_file_type());
+ }
 
 
 
@@ -135,6 +139,7 @@ const wordvec& plain_file::readfile() const {
 
 void plain_file::writefile (const wordvec& words) {
    DEBUGF ('i', words);
+   this->data = words;
 }
 
 size_t directory::size() const {
@@ -157,6 +162,14 @@ void directory::remove (const string& filename) {
    DEBUGF ('i', filename);
 }
 
+inode_ptr directory::mkfile (const string& filename) {
+   DEBUGF ('i', filename);
+   inode_ptr newFile = make_shared<inode>(file_type::PLAIN_TYPE);
+   newFile->setName(filename);
+   this->getDirent()[filename] = newFile;
+   return newFile;
+}
+
 inode_ptr directory::mkdir (const string& dirname) {
    DEBUGF ('i', dirname);
    inode_ptr newDir = make_shared<inode>(file_type::DIRECTORY_TYPE);
@@ -171,14 +184,13 @@ inode_ptr directory::mkdir (const string& dirname) {
     return this->dirents;
  }
 
-inode_ptr directory::mkfile (const string& filename) {
-   DEBUGF ('i', filename);
-   return nullptr;
-}
-
 inode_ptr directory::getPtr(const string& dirname){
    if(this->dirents.find(dirname) == dirents.end()){
       return nullptr;
    }
    return dirents[dirname];
 }
+
+size_t directory::get_number(){
+   //return this->inode_nr;
+ }

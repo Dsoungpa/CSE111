@@ -67,6 +67,7 @@ class inode {
       size_t inode_nr;
       base_file_ptr contents;
       string name;
+      int content_size;
    public:
       inode() = delete;
       inode (file_type);
@@ -104,6 +105,7 @@ class base_file {
       virtual void addMap(const string& dirname, inode_ptr ptr);
       virtual inode_ptr getPtr(const string& dirname);
       virtual map<string, inode_ptr>& getDirent();
+      virtual size_t get_number();
 };
 
 // class plain_file -
@@ -126,6 +128,7 @@ class plain_file: public base_file {
       virtual size_t size() const override;
       virtual const wordvec& readfile() const override;
       virtual void writefile (const wordvec& newdata) override;
+      //virtual size_t get_number();
 };
 
 // class directory -
@@ -163,6 +166,7 @@ class directory: public base_file {
       virtual void addMap(const string& dirname, inode_ptr ptr) override;
       virtual inode_ptr getPtr(const string& dirname) override;
       virtual map<string, inode_ptr>& getDirent() override;
+      virtual size_t get_number();
 };
 
 #endif
