@@ -82,7 +82,8 @@ void fn_cd (inode_state& state, const wordvec& words) {
    for(int i = 0; i < splitWords.size(); i++){
       if(state.getCwd()->getContent()->
       getPtr(splitWords[i]) == nullptr){
-         cout << "Error: No such directory!" << endl;
+         cout << "WORD:" << splitWords[i] << endl;
+         cout << "Error: No such directory!!!!!" << endl;
       }
       else{
          inode_ptr curr = state.getCwd()->
@@ -113,20 +114,26 @@ void fn_ls (inode_state& state, const wordvec& words) {
    int size = cD->getContent()->getDirent().size();
    map<string, inode_ptr>::iterator it;
 
-   // case for if they do "ls /"
-   if(words[1] == "/"){
-      cD = state.getRoot();
-      for(it = cD->getContent()->getDirent().begin(); 
-      it != cD->getContent()->getDirent().end(); it++){
-
-      cout << it->second->get_inode_nr() <<
-              "        " << it->first << endl;
-      }
-      return;
-   }
    // If we want to ls a remote directory,
    // print relative path to directory
    if(words.size() == 2){
+      // case for if they do "ls /"
+      if(words[1] == "/"){
+         cD = state.getRoot();
+         for(it = cD->getContent()->getDirent().begin(); 
+         it != cD->getContent()->getDirent().end(); it++){
+
+         cout << it->second->get_inode_nr() <<
+               "        " << it->first << endl;
+         }
+         return;
+      }
+
+      if(state.getCwd()->getContent()->getPtr(words[1])->getContent()->getError() == "plain file"){
+          cout << "Error: Non-Directory Type!" << endl;
+          return;
+      }
+
       fn_cd(state, words);
 
       string name = "";
@@ -155,19 +162,31 @@ void fn_ls (inode_state& state, const wordvec& words) {
 void fn_lsr (inode_state& state, const wordvec& words) {
    DEBUGF ('c', state);
    DEBUGF ('c', words);
-/*
-   string relative_path = "";
-   // cd into remote directory and create relative path
-   /*if(words.size() == 2){
-      relative_path = "/" + words[1];
+   inode_ptr keep = state.getCwd();
+   wordvec path;
+   path.push_back(words[0]);
+   
+   if(words.size() == 2){
+      path.push_back(words[1]);
+      fn_cd(state, path);
+      path.pop_back();
    }
 
-   wordvec go_ls;
-   go_ls.push_back(words[0]);
-   */
-   
+   fn_pwdLsr(state, path);
+   fn_ls(state, path);
 
+   for( const auto &pair : state.getCwd()->getContent()->getDirent()){
+      if(pair.first != "." and pair.first != ".."){
+         if(state.getCwd()->getContent()->getError() != "plain file"){
+            wordvec temp;
+            temp.push_back(path[0]);
+            temp.push_back(pair.first);
+            fn_lsr(state, temp);
 
+         }
+      }
+   }
+   state.setCwd(keep);
 }
 
 void fn_make (inode_state& state, const wordvec& words) {
@@ -291,6 +310,27 @@ void fn_pwd (inode_state& state, const wordvec& words) {
    }
    state.setCwd(save);
    cout << name << endl;
+   return;
+}
+
+void fn_pwdLsr (inode_state& state, const wordvec& words) {
+   DEBUGF ('c', state);
+   DEBUGF ('c', words);
+   if(state.getCwd() == state.getRoot()){
+      cout << "/:" << endl;
+      return;
+   }
+   inode_ptr save = state.getCwd();
+   wordvec goParent;
+   goParent.push_back(words[0]); 
+   goParent.push_back("..");
+   string name = "";
+   while(state.getCwd() != state.getRoot()){
+      name = "/" + state.getCwd()->getName() + name;
+      fn_cd(state, goParent);
+   }
+   state.setCwd(save);
+   cout << name << ":" << endl;
    return;
 }
 
